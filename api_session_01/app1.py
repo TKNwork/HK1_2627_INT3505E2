@@ -1,5 +1,3 @@
-# app1.py — Bài 1: Hello API
-# pyrefly: ignore [missing-import]
 from flask import Flask, jsonify
 
 app = Flask(__name__)   

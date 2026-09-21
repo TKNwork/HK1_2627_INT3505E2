@@ -1,5 +1,3 @@
-# app4.py — Bài 4: Route Parameters & Query Parameters
-# pyrefly: ignore [missing-import]
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -13,7 +11,6 @@ BOOKS = [
 def find_by_id(book_id):
     return next((b for b in BOOKS if b["id"] == str(book_id)), None)
 
-# /books/<id> — id là string
 @app.route("/books/<book_id>", methods=["GET"])
 def get_book(book_id):
     book = find_by_id(book_id)
@@ -21,12 +18,10 @@ def get_book(book_id):
         return jsonify({"error": "not found"}), 404
     return jsonify(book), 200
 
-# Ép kiểu int ngay từ URL
 @app.route("/items/<int:item_id>")
-def get_item(item_id):  # int sẵn
+def get_item(item_id):  
     return jsonify({"id": item_id}), 200
 
-# /books?limit=10&offset=0&q=python
 @app.route("/books", methods=["GET"])
 def list_books():
     limit = int(request.args.get("limit", 20))

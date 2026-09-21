@@ -1,5 +1,3 @@
-# app3.py — Bài 3: POST /students (Validation, UUID, Location header)
-# pyrefly: ignore [missing-import]
 from flask import Flask, jsonify, request
 from uuid import uuid4
 
@@ -7,12 +5,12 @@ app = Flask(__name__)
 
 STUDENTS = []
 
-# GET /students — lấy danh sách sinh viên
+# GET /students
 @app.route("/students", methods=["GET"])
 def get_students():
     return jsonify(STUDENTS), 200
 
-# GET /students/<student_id> — lấy chi tiết sinh viên theo ID
+# GET /students/<student_id>
 @app.route("/students/<student_id>", methods=["GET"])
 def get_student(student_id):
     student = next((s for s in STUDENTS if s["id"] == student_id), None)
@@ -20,7 +18,7 @@ def get_student(student_id):
         return jsonify({"error": "Không tìm thấy sinh viên"}), 404
     return jsonify(student), 200
 
-# POST /students — tạo sinh viên mới
+# POST /students
 @app.route("/students", methods=["POST"])
 def create_student():
     body = request.get_json(silent=True) or {}
@@ -35,7 +33,6 @@ def create_student():
     }
     STUDENTS.append(student)
 
-    # Trả về 201 Created kèm Location header chỉ tới tài nguyên vừa tạo
     return jsonify(student), 201, {"Location": f"/students/{student['id']}"}
 
 if __name__ == "__main__":
