@@ -1,0 +1,58 @@
+erDiagram
+    Category ||--o{ Book : contains
+    Book ||--|{ BookAuthor : has
+    Author ||--o{ BookAuthor : writes
+    Book ||--o{ Review : receives
+    User ||--o{ Review : writes
+    User ||--o{ Order : places
+    Order ||--|{ OrderItem : contains
+    Book ||--o{ OrderItem : purchased
+    Category {
+        int id PK
+        string name
+        string slug
+    }
+    Book {
+        int id PK
+        string title
+        string isbn
+        decimal price
+        int category_id FK
+    }
+    Author {
+        int id PK
+        string name
+        string biography
+        string website
+    }
+    BookAuthor {
+        int book_id PK,FK
+        int author_id PK,FK
+    }
+    User {
+        int id PK
+        string email
+        string password_hash
+        string name
+    }
+    Review {
+        int id PK
+        int book_id FK
+        int user_id FK
+        int rating
+        string comment
+        datetime created_at
+        string status
+    }
+    Order {
+        int id PK
+        int user_id FK
+        string status
+        datetime created_at
+    }
+    OrderItem {
+        int order_id PK,FK
+        int book_id PK,FK
+        int quantity
+        decimal unit_price
+    }

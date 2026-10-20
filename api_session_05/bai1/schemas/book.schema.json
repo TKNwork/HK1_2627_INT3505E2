@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "title": "Book",
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "isbn": {
+      "type": "string",
+      "pattern": "^[0-9]{13}$"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 9999999999.99,
+      "multipleOf": 0.01
+    },
+    "category_id": {
+      "$ref": "#/$defs/id"
+    },
+    "genre": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 80
+    },
+    "author_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "isbn",
+    "price",
+    "category_id",
+    "genre",
+    "author_ids"
+  ]
+}
