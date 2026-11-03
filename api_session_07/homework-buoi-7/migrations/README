@@ -1,0 +1,10 @@
+Migration được quản lý bằng Flask-Migrate/Alembic.
+
+Từ thư mục homework-buoi-7, kích hoạt .venv và cấu hình DATABASE_URL.
+Áp dụng revision đã có: flask --app wsgi:app db upgrade
+Xem revision hiện tại: flask --app wsgi:app db current
+Kiểm tra model/schema: flask --app wsgi:app db check
+
+Chỉ khi phát triển và thay model: flask --app wsgi:app db migrate -m 'mô tả'
+Luôn đọc lại revision trước upgrade. Không sinh revision khi container khởi động.
+Không downgrade database có dữ liệu cần giữ; kiểm thử downgrade chỉ trên DB tạm.
