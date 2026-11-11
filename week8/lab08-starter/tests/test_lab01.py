@@ -49,3 +49,24 @@ def test_get_book_after_deletion(client):
     response = client.get(f"/books/{book_id}")
     assert response.status_code == 404
 
+
+def test_response_extra_field_blocked(client, sample_book):
+    import pytest
+    from jsonschema import ValidationError, validate
+    from tools import get_book_schema
+
+    response = client.get(f"/books/{sample_book}")
+    assert response.status_code == 200
+
+    book = response.get_json()
+    schema = get_book_schema()
+    # Match the API's integer year and express OpenAPI nullability in JSON Schema.
+    properties = schema["properties"]
+    properties["year"]["type"] = ["integer", "null"]
+    properties["isbn"]["type"] = ["string", "null"]
+    validate(instance=book, schema=schema)
+
+    book_with_extra_field = {**book, "password_hash": "fake-hash"}
+    with pytest.raises(ValidationError, match="password_hash"):
+        validate(instance=book_with_extra_field, schema=schema)
+
