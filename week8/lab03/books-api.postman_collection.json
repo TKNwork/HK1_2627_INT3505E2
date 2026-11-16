@@ -205,14 +205,38 @@
                 }
               }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"JSON code is VALIDATION_ERROR\", () => pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\"));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "GET /books/9999",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/books/9999"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"JSON code is NOT_FOUND\", () => pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\"));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
