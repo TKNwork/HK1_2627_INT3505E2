@@ -174,7 +174,13 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));",
-                  "pm.test(\"empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                  "pm.test(\"empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));",
+                  "pm.test(\"DELETE uses the book ID saved by POST\", () => {",
+                  "  const bookId = pm.collectionVariables.get(\"book_id\");",
+                  "  pm.expect(Number(bookId)).to.be.above(0);",
+                  "  const requestUrl = pm.variables.replaceIn(pm.request.url.toString());",
+                  "  pm.expect(requestUrl).to.match(new RegExp(\"/books/\" + bookId + \"$\"));",
+                  "});"
                 ]
               }
             }
