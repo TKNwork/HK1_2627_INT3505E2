@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "SOA Buổi 5 - Bookstore",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5000"
+    },
+    {
+      "key": "next_cursor",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "GET all books",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offset pagination",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?strategy=offset&offset=10&limit=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cursor first page",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?strategy=cursor&sort=-price,title&limit=7"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));",
+              "pm.collectionVariables.set(\"next_cursor\", body.page_info.next_cursor || \"\");",
+              "pm.test(\"Cursor metadata\", () => pm.expect(body.page_info.has_more).to.be.a(\"boolean\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cursor next page",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?strategy=cursor&sort=-price,title&limit=7&cursor={{next_cursor}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));",
+              "pm.collectionVariables.set(\"next_cursor\", body.page_info.next_cursor || \"\");",
+              "pm.test(\"Cursor metadata\", () => pm.expect(body.page_info.has_more).to.be.a(\"boolean\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter by genre",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?genre=technology"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sort by price",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?sort=price"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multi-key sorting",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?sort=-price,title"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter + sort + cursor",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?genre=technology&sort=title,-price&strategy=cursor&limit=7"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Data array\", () => pm.expect(body.data).to.be.an(\"array\"));",
+              "pm.test(\"Pagination structure\", () => pm.expect(Boolean(body.pagination || body.page_info)).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid parameters",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/books?limit=0"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();",
+              "pm.test(\"JSON error\", () => pm.expect(body.error.code).to.eql(\"invalid_parameters\"));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

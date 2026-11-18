@@ -1,0 +1,9 @@
+{
+  "id": 0,
+  "book_id": 1,
+  "user_id": 1,
+  "rating": 6,
+  "comment": "Rất dễ hiểu",
+  "created_at": "not-a-date",
+  "status": "published"
+}

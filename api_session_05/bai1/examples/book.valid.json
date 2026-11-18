@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "title": "Học API",
+  "isbn": "9780000000000",
+  "price": 25,
+  "category_id": 1,
+  "genre": "technology",
+  "author_ids": [
+    1,
+    2
+  ]
+}

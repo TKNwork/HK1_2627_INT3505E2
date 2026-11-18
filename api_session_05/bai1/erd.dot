@@ -1,0 +1,18 @@
+digraph ERD { graph [rankdir=LR, bgcolor="white", nodesep=0.4, ranksep=0.7]; node [shape=record,fontname="DejaVu Sans",fontsize=11]; edge [fontname="DejaVu Sans",fontsize=10];
+Category [label="{Category|id PK\lname NOT NULL\lslug UNIQUE NOT NULL\l}"];
+Book [label="{Book|id PK\ltitle NOT NULL\lisbn UNIQUE NOT NULL\lprice DECIMAL CHECK ≥= 0\lcategory_id FK NOT NULL\l}"];
+Author [label="{Author|id PK\lname NOT NULL\lbiography NULL\lwebsite NULL\l}"];
+BookAuthor [label="{BookAuthor|book_id PK FK\lauthor_id PK FK\l}"];
+User [label="{User|id PK\lemail UNIQUE NOT NULL\lpassword_hash NOT NULL\lname NOT NULL\l}"];
+Review [label="{Review|id PK\lbook_id FK NOT NULL\luser_id FK NOT NULL\lrating CHECK 1..5\lcomment NOT NULL\lcreated_at NOT NULL\lstatus published / hidden\lUNIQUE book_id,user_id\l}"];
+Order [label="{Order|id PK\luser_id FK NOT NULL\lstatus pending / paid / cancelled\lcreated_at NOT NULL\l}"];
+OrderItem [label="{OrderItem|order_id PK FK\lbook_id PK FK\lquantity positive integer\lunit_price DECIMAL CHECK ≥= 0\l}"];
+Category -> Book [label="contains: 1 to 0..N"];
+Book -> BookAuthor [label="has: 1 to 1..N"];
+Author -> BookAuthor [label="writes: 1 to 0..N"];
+Book -> Review [label="receives: 1 to 0..N"];
+User -> Review [label="writes: 1 to 0..N"];
+User -> Order [label="places: 1 to 0..N"];
+Order -> OrderItem [label="contains: 1 to 1..N"];
+Book -> OrderItem [label="purchased: 1 to 0..N"];
+}

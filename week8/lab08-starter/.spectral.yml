@@ -1,0 +1,29 @@
+extends: spectral:oas
+
+rules:
+  info-contact: off
+  operation-description: off
+  operation-tags: off
+
+  response-200-object-has-fields:
+    description: A JSON 200 response must document at least one field in its object schema or array item schema.
+    severity: error
+    resolved: true
+    given:
+      - "$.paths[*][*].responses['200'].content['application/json'].schema"
+      - "$.paths[*][*].responses['200'].content['application/json'].schema.items"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          if:
+            required: [type]
+            properties:
+              type:
+                const: object
+          then:
+            required: [properties]
+            properties:
+              properties:
+                type: object
+                minProperties: 1

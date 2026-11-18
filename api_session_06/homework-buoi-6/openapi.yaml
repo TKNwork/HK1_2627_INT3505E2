@@ -1,0 +1,552 @@
+openapi: 3.0.3
+info:
+  title: SOA Buổi 6 – Social Network Authentication & Authorization
+  version: 1.0.0
+  description: Hợp đồng thiết kế bài tập, chưa triển khai backend. Không phải OAuth2/OIDC. Tất cả token/password
+    ví dụ là DEMO_ONLY, không dùng được. Các lỗi hạ tầng ngoài phạm vi bài tập phải được triển khai bằng lỗi
+    đã làm sạch, không lộ stack trace.
+servers:
+- url: https://api.social.example.invalid
+  description: Địa chỉ minh họa được dành riêng, không phải backend đang chạy.
+tags:
+- name: Authentication
+  description: Login và vòng đời refresh session.
+- name: Posts
+  description: Đọc bài viết có kiểm tra scope và ownership.
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Đăng nhập bằng email/password
+      tags:
+      - Authentication
+      description: 'Không yêu cầu access token hoặc scope trước login. security: [] bỏ yêu cầu security scheme
+        header, server vẫn xác thực email/password. Chỉ nhận email/password; field lạ (kể cả roles/scope) trả
+        400. Password không trim hoặc tự cắt; email trim và chuẩn hóa theo quy tắc định danh nhất quán của
+        hệ thống. Trả lỗi chung khi credential sai hoặc tài khoản bị khóa. Chỉ HTTPS. Các ví dụ DEMO_ONLY không
+        sử dụng được.'
+      security: []
+      x-required-scopes: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              login:
+                value:
+                  email: student@example.com
+                  password: DEMO_ONLY_NOT_A_REAL_PASSWORD
+      responses:
+        '200':
+          description: 'Đăng nhập thành công, tạo refresh family mới. Access TTL 900 giây, refresh family TTL
+            tuyệt đối 604800 giây; đây là lựa chọn thiết kế bổ sung. Bắt buộc Cache-Control: no-store và Pragma:
+            no-cache.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                loginSuccess:
+                  value:
+                    access_token: DEMO_ONLY_ACCESS_TOKEN_NOT_VALID
+                    refresh_token: DEMO_ONLY_REFRESH_TOKEN_NOT_VALID
+                    token_type: Bearer
+                    expires_in: 900
+                    refresh_expires_in: 604800
+                    scope: posts:read
+                    user: &id001
+                      id: 1
+                      roles:
+                      - user
+          headers: &id002
+            Cache-Control: &id003
+              description: Bắt buộc trên response chứa token và mọi response GET post (kể cả lỗi).
+              schema:
+                type: string
+                enum:
+                - no-store
+              example: no-store
+            Pragma:
+              description: Bắt buộc trên response chứa token.
+              schema:
+                type: string
+                enum:
+                - no-cache
+              example: no-cache
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/InvalidCredentials'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/refresh:
+    post:
+      operationId: refreshTokens
+      summary: Rotation refresh token và cấp cặp token mới
+      tags:
+      - Authentication
+      description: 'Không cần access token còn hạn hoặc access scope. security: [] chỉ bỏ security scheme header;
+        refresh token trong JSON body vẫn phải được xác thực. Không truyền token vào URL/query. Không nhận
+        access token thay refresh token. Field thiếu/rỗng/sai kiểu/lạ hoặc JSON hỏng trả 400; chuỗi không rỗng
+        nhưng xác thực thất bại trả 401. Kiểm tra hash token, hạn tuyệt đối family, phiên còn hoạt động, tài
+        khoản active và quyền hiện tại từ server. Quyền mới không vượt phạm vi family ban đầu; không còn quyền
+        đọc thì thu hồi family và trả 401. Trong một transaction/compare-and-swap: đánh dấu token cũ đã dùng
+        và ghi token mới trước khi commit; không để hai request cùng thành công. Lưu hash token đã dùng đến
+        hạn family để phát hiện replay. Replay trả lỗi chung 401, thu hồi toàn bộ family và audit log không
+        chứa token. Hai request đồng thời: tối đa một 200, request còn lại 401 và thu hồi family, kể cả refresh
+        token vừa cấp; client cần đăng nhập lại. Rotation không gia hạn 7 ngày. Thu hồi refresh không tự hủy
+        access JWT; GET kiểm tài khoản và token_version để chặn quyền cũ.'
+      security: []
+      x-required-scopes: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            examples:
+              refresh:
+                value:
+                  refresh_token: DEMO_ONLY_REFRESH_TOKEN_NOT_VALID
+      responses:
+        '200':
+          description: Cặp access/refresh token mới; token cũ vô hiệu. Ví dụ refresh sau login 900 giây nên
+            family còn 603900 giây. Bắt buộc no-store và no-cache.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              examples:
+                refreshSuccess:
+                  value:
+                    access_token: DEMO_ONLY_NEW_ACCESS_TOKEN_NOT_VALID
+                    refresh_token: DEMO_ONLY_NEW_REFRESH_TOKEN_NOT_VALID
+                    token_type: Bearer
+                    expires_in: 900
+                    refresh_expires_in: 603900
+                    scope: posts:read
+                    user: *id001
+          headers: *id002
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/InvalidRefreshToken'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /posts/{id}:
+    get:
+      operationId: getPostById
+      summary: Đọc bài viết theo visibility và ownership
+      tags:
+      - Posts
+      description: 'Bắt buộc JWT access token và scope posts:read. Thứ tự: authentication (gồm tài khoản active,
+        token_version hiện tại), scope, định dạng ID, tìm post, ownership. Public vẫn yêu cầu đăng nhập và
+        scope. Private chỉ author_id == user.id hoặc role admin hiện tại. Admin không bỏ qua token/scope. Scope
+        chỉ cho phép hành động, không cho đọc mọi private post. Refresh token luôn bị từ chối. JWT profile
+        RS256 cố định; kiểm chữ ký, exp/iat/nbf, iss=https://auth.social.example.invalid, aud=social-network-api,
+        token_use=access, sub, jti và token_version; xem README. Tất cả response của operation này có Cache-Control:
+        no-store để tránh cache dữ liệu riêng tư.'
+      security:
+      - bearerAuth: []
+      x-required-scopes:
+      - posts:read
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Integer dương; sai định dạng trả 400 sau khi qua authentication/scope.
+        schema:
+          type: integer
+          minimum: 1
+        example: 42
+      responses:
+        '200':
+          description: Bài viết được phép đọc; không trả email, password_hash hoặc dữ liệu nội bộ tác giả.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+              examples:
+                privatePost:
+                  value:
+                    id: 42
+                    author_id: 1
+                    content: Bài viết minh họa cho bài tập SOA.
+                    visibility: private
+                    created_at: '2026-10-27T03:00:00Z'
+                    updated_at: '2026-10-27T03:00:00Z'
+          headers:
+            Cache-Control: *id003
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/BearerUnauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: student@example.com
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+          writeOnly: true
+          example: DEMO_ONLY_NOT_A_REAL_PASSWORD
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Opaque refresh token, không phải JWT access token. Ví dụ chỉ minh họa, không dùng được.
+          example: DEMO_ONLY_REFRESH_TOKEN_NOT_VALID
+    UserSummary:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - roles
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          example: 1
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - user
+            - admin
+    TokenResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - access_token
+      - refresh_token
+      - token_type
+      - expires_in
+      - refresh_expires_in
+      - scope
+      - user
+      properties:
+        access_token:
+          type: string
+          minLength: 1
+          description: JWT access token; ví dụ DEMO_ONLY không phải credential dùng được.
+        refresh_token:
+          type: string
+          minLength: 1
+          description: Opaque refresh token mới; chỉ lưu hash ở server.
+        token_type:
+          type: string
+          enum:
+          - Bearer
+        expires_in:
+          type: integer
+          minimum: 1
+          maximum: 900
+          description: Số giây còn hiệu lực của access token mới.
+        refresh_expires_in:
+          type: integer
+          minimum: 1
+          maximum: 604800
+          description: Số giây còn lại đến hạn tuyệt đối của refresh family; rotation không gia hạn.
+        scope:
+          type: string
+          pattern: ^[a-z]+:[a-z]+( [a-z]+:[a-z]+)*$
+          description: Scope hiện tại do server cấp; profile này cấp posts:read cho user/admin đang active.
+          example: posts:read
+        user:
+          $ref: '#/components/schemas/UserSummary'
+    Post:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - author_id
+      - content
+      - visibility
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        author_id:
+          type: integer
+          minimum: 1
+        content:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        visibility:
+          type: string
+          enum:
+          - public
+          - private
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - invalid_request
+              - invalid_credentials
+              - invalid_refresh_token
+              - unauthorized
+              - invalid_token
+              - insufficient_scope
+              - forbidden
+              - post_not_found
+              - unsupported_media_type
+              - rate_limit_exceeded
+            message:
+              type: string
+              minLength: 1
+  responses:
+    BadRequest:
+      description: '400: JSON hỏng, thiếu field, sai kiểu/độ dài, field không hỗ trợ hoặc ID không phải integer
+        dương.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidRequest:
+              value:
+                error:
+                  code: invalid_request
+                  message: Dữ liệu yêu cầu không hợp lệ.
+      headers:
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    InvalidCredentials:
+      description: '401: email không tồn tại, password sai hoặc tài khoản không active; cùng code/message.
+        Không dùng Bearer challenge vì endpoint xác thực email/password, không nhận Bearer access token.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidCredentials:
+              value:
+                error:
+                  code: invalid_credentials
+                  message: Thông tin đăng nhập không hợp lệ.
+      headers:
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    InvalidRefreshToken:
+      description: '401: token sai, hết hạn, bị thu hồi, sai loại (kể cả access token), replay hoặc tài khoản
+        không active. Không trả chi tiết nội bộ. Không dùng Bearer challenge vì credential là refresh token
+        trong JSON body.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidRefresh:
+              value:
+                error:
+                  code: invalid_refresh_token
+                  message: Không thể làm mới phiên đăng nhập.
+      headers:
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    UnsupportedMediaType:
+      description: '415: chỉ hỗ trợ Content-Type application/json; chấp nhận charset UTF-8.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unsupportedMediaType:
+              value:
+                error:
+                  code: unsupported_media_type
+                  message: Chỉ hỗ trợ Content-Type application/json.
+      headers:
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    TooManyRequests:
+      description: '429: vượt giới hạn; không trả token. Login giới hạn theo IP và định danh email đã chuẩn
+        hóa; refresh theo IP và phiên khi nhận diện được; đọc bài theo user/IP. Ngưỡng là cấu hình triển khai,
+        cần kiểm thử tải.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rateLimited:
+              value:
+                error:
+                  code: rate_limit_exceeded
+                  message: Quá nhiều yêu cầu. Vui lòng thử lại sau.
+      headers:
+        Retry-After:
+          description: Số giây tối thiểu nên chờ; bắt buộc khi trả 429.
+          schema:
+            type: integer
+            minimum: 1
+          example: 60
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    BearerUnauthorized:
+      description: '401: thiếu access token; token sai chữ ký, hết hạn, đã thu hồi, sai issuer/audience/type
+        hoặc tài khoản không active. Thiếu token: Bearer realm="social-network"; token thất bại: thêm error="invalid_token".'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingToken:
+              value:
+                error:
+                  code: unauthorized
+                  message: Cần xác thực bằng access token.
+            invalidToken:
+              value:
+                error:
+                  code: invalid_token
+                  message: Access token không hợp lệ.
+      headers:
+        WWW-Authenticate:
+          description: 'Bắt buộc. Thiếu token: Bearer realm="social-network"; token không hợp lệ: ví dụ dưới.'
+          schema:
+            type: string
+          example: Bearer realm="social-network", error="invalid_token"
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    Forbidden:
+      description: '403: token hợp lệ nhưng thiếu posts:read hoặc không phải owner/admin của private post.
+        Chỉ trường hợp insufficient_scope trả WWW-Authenticate như ví dụ; forbidden do ownership không có header
+        này. 403 cho private post làm lộ sự tồn tại tài nguyên; chấp nhận trade-off của bài học.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingScope:
+              value:
+                error:
+                  code: insufficient_scope
+                  message: Bạn không có quyền thực hiện thao tác này.
+            privatePost:
+              value:
+                error:
+                  code: forbidden
+                  message: Bạn không có quyền đọc bài viết này.
+      headers:
+        WWW-Authenticate:
+          description: Chỉ bắt buộc khi thiếu scope, không dùng cho lỗi ownership.
+          schema:
+            type: string
+          example: Bearer realm="social-network", error="insufficient_scope", scope="posts:read"
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+    NotFound:
+      description: '404: không tồn tại bài viết với ID hợp lệ; chỉ xét sau authentication và scope.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              value:
+                error:
+                  code: post_not_found
+                  message: Không tìm thấy bài viết.
+      headers:
+        Cache-Control:
+          description: Không lưu response trong cache.
+          schema:
+            type: string
+            enum:
+            - no-store
+          example: no-store
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT RS256; scope bắt buộc được mô tả bằng x-required-scopes, không đặt trong mảng
+        Bearer Security Requirement. Không chấp nhận refresh token.
