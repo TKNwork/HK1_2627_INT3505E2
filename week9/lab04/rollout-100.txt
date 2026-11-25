@@ -1,0 +1,14 @@
+POST /orders | Rollout 100%
+LAB04_V2_PERCENT=100
+Request URL: http://127.0.0.1:63236/orders
+Request body: {"account_id":"acct_1"}
+
+HTTP/1.0 201 CREATED
+Server: Werkzeug/3.1.9 Python/3.12.10
+Date: Wed, 25 Nov 2026 04:34:01 GMT
+Content-Type: application/json
+Content-Length: 43
+X-Order-Handler: v2
+Connection: close
+
+{"account_id":"acct_1","status":"created"}
